@@ -1,0 +1,34 @@
+[language-server.rust-analyzer]
+command = "rust-analyzer"
+timeout = 120
+
+  [language-server.rust-analyzer.config]
+  cargo.features                                 = "all"
+  cargo.targetDir                                = true
+  check.command                                  = "clippy"
+  inlayHints.bindingModeHints.enable             = false
+  inlayHints.closingBraceHints.minLines          = 10
+  inlayHints.closureReturnTypeHints.enable       = "with_block"
+  inlayHints.discriminantHints.enable            = "fieldless"
+  inlayHints.lifetimeElisionHints.enable         = "skip_trivial"
+  inlayHints.typeHints.hideClosureInitialization = false
+  lru.capacity                                   = 16384
+
+    [language-server.rust-analyzer.config.files]
+    watcher = "server"
+
+[language-server.taplo]
+command = "taplo"
+args    = ["lsp", "stdio"]
+
+[[language]]
+name                          = "rust"
+shebangs                      = ["rust-script", "cargo"]
+auto-format                   = true
+language-servers              = ["rust-analyzer", "tailwindcss-ls"]
+indent                        = { tab-width = 4, unit = "    " }
+persistent-diagnostic-sources = ["rustc", "clippy"]
+
+  [language.formatter]
+  command = "rustfmt"
+  args    = ["+nightly", "--edition", "2024"]
