@@ -9,7 +9,7 @@ use serenity::all::{GatewayIntents, ShardManager};
 use crate::state::{Data, Error};
 
 pub(crate) mod macros;
-crate::mod_flat!(commands, db, state);
+crate::mod_flat!(commands, db, state, utils);
 
 lazy_static! {
     pub static ref DEV_GUILD: Option<serenity::GuildId> = match std::env::var("DEV_GUILD_ID") {
