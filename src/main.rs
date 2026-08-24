@@ -9,7 +9,7 @@ use serenity::all::{GatewayIntents, ShardManager};
 use crate::state::{Data, Error};
 
 pub(crate) mod macros;
-crate::mod_flat!(commands, db, state, utils);
+crate::mod_flat!(commands, db, diff, state, utils);
 
 lazy_static! {
     pub static ref DEV_GUILD: Option<serenity::GuildId> = match std::env::var("DEV_GUILD_ID") {
@@ -33,7 +33,7 @@ async fn main() -> Result<()> {
     let db = db::Database::connect(&db_url).await.context("could not open the database")?;
 
     let global_commands: Vec<Command<Data, Error>> = vec![];
-    let commands: Vec<Command<Data, Error>> = vec![commands::register()];
+    let commands: Vec<Command<Data, Error>> = vec![commands::register(), commands::watchlist()];
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions { commands, ..Default::default() })

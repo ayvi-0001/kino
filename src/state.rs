@@ -1,8 +1,6 @@
 use crate::db;
 
-#[allow(dead_code)]
 pub struct Data {
-    #[allow(dead_code)]
     pub(super) db: db::Database,
     pub(super) write_lock: tokio::sync::Mutex<()>,
 }
