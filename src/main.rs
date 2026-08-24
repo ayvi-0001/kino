@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use ::serenity::all::{ClientBuilder, GuildInfo};
 use anyhow::{Context as _, Result};
+use lazy_static::lazy_static;
 use poise::{Command, serenity_prelude as serenity};
 use serenity::all::{GatewayIntents, ShardManager};
 
@@ -9,6 +10,15 @@ use crate::state::{Data, Error};
 
 pub(crate) mod macros;
 crate::mod_flat!(commands, state);
+
+lazy_static! {
+    pub static ref DEV_GUILD: Option<serenity::GuildId> = match std::env::var("DEV_GUILD_ID") {
+        Ok(value) => Some(serenity::GuildId::new(
+            value.trim().parse().expect("DEV_GUILD_ID must be a numeric guild id"),
+        )),
+        Err(_) => None,
+    };
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -26,19 +36,27 @@ async fn main() -> Result<()> {
         .options(poise::FrameworkOptions { commands, ..Default::default() })
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
-                poise::builtins::register_globally(&ctx.http, &global_commands).await?;
-
-                for guild in
-                    ctx.http.get_guilds(None, None).await?.iter().collect::<Vec<&GuildInfo>>()
-                {
+                if let Some(dev_guild_id) = *DEV_GUILD {
                     poise::builtins::register_in_guild(
                         &ctx.http,
                         &framework.options().commands,
-                        guild.id,
+                        dev_guild_id,
                     )
                     .await?;
-                }
+                } else {
+                    poise::builtins::register_globally(&ctx.http, &global_commands).await?;
 
+                    for guild in
+                        ctx.http.get_guilds(None, None).await?.iter().collect::<Vec<&GuildInfo>>()
+                    {
+                        poise::builtins::register_in_guild(
+                            &ctx.http,
+                            &framework.options().commands,
+                            guild.id,
+                        )
+                        .await?;
+                    }
+                }
                 Ok(Data::new())
             })
         })
