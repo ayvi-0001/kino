@@ -8,6 +8,7 @@ rust-version = "1.90.0"
 anyhow = "1.0.104"
 lazy_static = "1.5.0"
 poise = "0.6.2"
+serde = { version = "1.0.229", features = ["derive"] }
 serenity = { version = "0.12.5", default-features = false, features = [
   "client",
   "gateway",
@@ -15,6 +16,14 @@ serenity = { version = "0.12.5", default-features = false, features = [
   "model",
   "builder",
   "cache",
+] }
+sqlx = { version = "0.9.0", features = [
+  "derive",
+  "chrono",
+  "macros",
+  "runtime-tokio",
+  "sqlite",
+  "migrate",
 ] }
 tokio = { version = "1.53.1", features = [
   "macros",
