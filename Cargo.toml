@@ -2,7 +2,7 @@
 name = "kino"
 version = "0.2.0"
 edition = "2024"
-rust-version = "1.90.0"
+rust-version = "1.94.0"
 
 [dependencies]
 anyhow = "1.0.104"
