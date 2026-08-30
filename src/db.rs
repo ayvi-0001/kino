@@ -67,7 +67,7 @@ impl Database {
             .connect_with(options)
             .await?;
 
-        if let Err(migrate_result) = sqlx::migrate!().run(&pool).await {
+        if let Err(migrate_result) = sqlx::migrate!("migrations/sqlite").run(&pool).await {
             // TODO(ayvi0001): handle if migration fails
             tracing::error!("Sqlx migration error: {:?}", migrate_result.to_string());
         };
