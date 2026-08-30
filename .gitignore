@@ -1,5 +1,10 @@
 /target
+
+data/
+
 *.db
 *.db-shm
 *.db-wal
+
+.env
 .envrc.*
