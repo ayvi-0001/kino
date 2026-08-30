@@ -37,7 +37,11 @@ async fn main() -> Result<()> {
     let db = db::Database::connect(&db_url).await.context("could not open the database")?;
 
     let global_commands: Vec<Command<Data, Error>> = vec![];
-    let commands: Vec<Command<Data, Error>> = vec![commands::register(), commands::watchlist()];
+    let commands: Vec<Command<Data, Error>> = vec![
+        commands::register(),
+        commands::watchlist(),
+        commands::version(),
+    ];
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions { commands, ..Default::default() })
