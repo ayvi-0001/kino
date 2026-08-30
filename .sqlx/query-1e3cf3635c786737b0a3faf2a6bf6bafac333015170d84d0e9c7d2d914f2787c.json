@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO guild.lists (guild_id, channel_id, message_id, author_id, revision, updated_at)\n                   VALUES ($1, $2, $3, $4, $5, $6)\n                   ON CONFLICT (channel_id)\n                   DO UPDATE SET\n                       message_id = excluded.message_id,\n                       updated_at = excluded.updated_at;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1e3cf3635c786737b0a3faf2a6bf6bafac333015170d84d0e9c7d2d914f2787c"
+}

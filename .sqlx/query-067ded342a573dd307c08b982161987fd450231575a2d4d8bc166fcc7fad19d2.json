@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO guild.entries (ordinal, list_id, author_id, name, created_at, updated_at)\n                       VALUES ($1, $2, $3, $4, $5, $5)\n                       ON CONFLICT (list_id, name)\n                       DO UPDATE SET\n                           ordinal = $1,\n                           updated_at = $5;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "067ded342a573dd307c08b982161987fd450231575a2d4d8bc166fcc7fad19d2"
+}

@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO guild.revisions (guild_id, channel_id, author_id, content, created_at)\n                   VALUES ($1, $2, $3, $4, $5)\n                   RETURNING id;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guild.revisions",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e8f31ddd4bc6e35d106e5ba9c52b75f7da39bdebd5f7fd6d3bf47cd25dacd19d"
+}

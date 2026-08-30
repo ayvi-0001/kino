@@ -278,8 +278,7 @@ async fn sync_pinned(
 
     let entries: Vec<&str> = split_entries(content);
 
-    let updated_at: i64 = list.updated_at.and_utc().timestamp();
-    let content: String = render_pinned(entries, list.author_id as u64, updated_at);
+    let content: String = render_pinned(entries, list.author_id as u64, list.updated_at);
 
     let edit = serenity::EditMessage::new().content(content.clone());
 

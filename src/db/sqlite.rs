@@ -2,7 +2,6 @@ use std::path::Path;
 
 use anyhow::{Result, anyhow};
 use chrono::NaiveDateTime;
-use serde::{Deserialize, Serialize};
 use sqlx::{
     Arguments, Pool, Sqlite,
     query::Query,
@@ -10,30 +9,8 @@ use sqlx::{
     sqlite::{SqliteArguments, SqliteConnectOptions, SqlitePoolOptions},
 };
 
+use super::{Entry, Watchlist};
 use crate::utils::now;
-
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Decode, sqlx::Encode, sqlx::FromRow)]
-pub struct Watchlist {
-    pub id: i64,
-    pub guild_id: i64,
-    pub channel_id: i64,
-    pub message_id: i64,
-    pub author_id: i64,
-    pub revision: i64,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Decode, sqlx::Encode, sqlx::FromRow)]
-pub struct Entry {
-    pub id: i64,
-    pub list_id: i64,
-    pub ordinal: i64,
-    pub name: String,
-    pub author_id: i64,
-    pub created_at: i64,
-    pub updated_at: i64,
-}
 
 #[derive(Clone)]
 pub struct Database {
@@ -85,8 +62,8 @@ impl Database {
                    message_id AS "message_id!",
                    author_id AS "author_id!",
                    revision AS "revision!",
-                   created_at AS "created_at!: NaiveDateTime",
-                   updated_at AS "updated_at!: NaiveDateTime"
+                   created_at AS "created_at!",
+                   updated_at AS "updated_at!"
                FROM
                    lists
                WHERE
@@ -204,7 +181,7 @@ impl Database {
     pub async fn delete_all_list_entries(&self, list_id: i64) -> Result<()> {
         let mut transaction: sqlx::Transaction<'_, Sqlite> = self.pool.begin().await?;
 
-        sqlx::query!(r#"DELETE FROM entries WHERE list_id = ?;"#, list_id,)
+        sqlx::query!(r#"DELETE FROM entries WHERE list_id = ?;"#, list_id)
             .execute(&mut *transaction)
             .await?;
 

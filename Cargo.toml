@@ -4,6 +4,11 @@ version = "0.2.0"
 edition = "2024"
 rust-version = "1.94.0"
 
+[features]
+default = ["postgres"]
+sqlite = ["sqlx/sqlite"]
+postgres = ["sqlx/postgres"]
+
 [dependencies]
 anyhow = "1.0.104"
 chrono = { version = "0.4.45", features = ["serde"] }
@@ -24,7 +29,6 @@ sqlx = { version = "0.9.0", features = [
   "chrono",
   "macros",
   "runtime-tokio",
-  "sqlite",
   "migrate",
 ] }
 tokio = { version = "1.53.1", features = [

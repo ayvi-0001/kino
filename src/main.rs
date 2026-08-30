@@ -29,7 +29,11 @@ async fn main() -> Result<()> {
 
     let token: String = std::env::var("DISCORD_TOKEN").context("missing env var DISCORD_TOKEN")?;
 
+    #[cfg(feature = "postgres")]
+    let db_url = std::env::var("DATABASE_URL").context("missing env var DATABASE_URL")?;
+    #[cfg(all(feature = "sqlite", not(feature = "postgres")))]
     let db_url = std::env::var("DATABASE_URL").unwrap_or("data/watchlist.db".to_owned());
+
     let db = db::Database::connect(&db_url).await.context("could not open the database")?;
 
     let global_commands: Vec<Command<Data, Error>> = vec![];

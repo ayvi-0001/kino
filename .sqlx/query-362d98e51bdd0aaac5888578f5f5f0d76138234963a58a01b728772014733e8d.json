@@ -1,0 +1,100 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                   id AS \"id!\",\n                   list_id AS \"list_id!\",\n                   ordinal AS \"ordinal!\",\n                   name AS \"name!\",\n                   author_id AS \"author_id!\",\n                   created_at AS \"created_at!\",\n                   updated_at AS \"updated_at!\"\n               FROM\n                   guild.entries\n               WHERE\n                   list_id = $1\n               ORDER BY\n                   ordinal;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guild.entries",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "list_id!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guild.entries",
+            "name": "list_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "ordinal!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guild.entries",
+            "name": "ordinal"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "name!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "guild.entries",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "author_id!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guild.entries",
+            "name": "author_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guild.entries",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guild.entries",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "362d98e51bdd0aaac5888578f5f5f0d76138234963a58a01b728772014733e8d"
+}
