@@ -111,7 +111,8 @@ impl Database {
                    ON CONFLICT (channel_id)
                    DO UPDATE SET
                        message_id = excluded.message_id,
-                       updated_at = excluded.updated_at;"#,
+                       updated_at = excluded.updated_at,
+                       revision = excluded.revision;"#,
             guild_id,
             channel_id,
             message_id,
