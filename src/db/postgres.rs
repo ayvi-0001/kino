@@ -106,13 +106,21 @@ impl Database {
         .await?;
 
         sqlx::query!(
-            r#"INSERT INTO guild.lists (guild_id, channel_id, message_id, author_id, revision, updated_at)
-                   VALUES ($1, $2, $3, $4, $5, $6)
-                   ON CONFLICT (channel_id)
-                   DO UPDATE SET
-                       message_id = excluded.message_id,
-                       updated_at = excluded.updated_at,
-                       revision = excluded.revision;"#,
+                r#"MERGE INTO guild.lists e
+                USING (
+                    VALUES ($1::bigint, $2::bigint, $3::bigint, $4::bigint, $5::bigint, $6::bigint)
+                ) n(guild_id, channel_id, message_id, author_id, revision, updated_at)
+                ON
+                    e.guild_id = n.guild_id
+                    AND e.channel_id = n.channel_id
+                WHEN MATCHED THEN
+                    UPDATE SET
+                        message_id = n.message_id,
+                        updated_at = n.updated_at,
+                        revision = n.revision
+                WHEN NOT MATCHED THEN
+                    INSERT (guild_id, channel_id, message_id, author_id, revision, updated_at)
+                        VALUES (n.guild_id, n.channel_id, n.message_id, n.author_id, n.revision, n.updated_at);"#,
             guild_id,
             channel_id,
             message_id,
@@ -180,12 +188,20 @@ impl Database {
 
         for (idx, entry) in entries.into_iter().enumerate() {
             sqlx::query!(
-                r#"INSERT INTO guild.entries (ordinal, list_id, author_id, name, created_at, updated_at)
-                       VALUES ($1, $2, $3, $4, $5, $5)
-                       ON CONFLICT (list_id, name)
-                       DO UPDATE SET
-                           ordinal = $1,
-                           updated_at = $5;"#,
+                r#"MERGE INTO guild.entries e
+                USING (
+                    VALUES ($1::bigint, $2::bigint, $3::bigint, $4::text, $5::bigint, $5::bigint)
+                ) n(ordinal, list_id, author_id, "name", created_at, updated_at)
+                ON
+                    e.list_id = n.list_id
+                    AND e.name = n.name
+                WHEN MATCHED THEN
+                    UPDATE SET
+                    ordinal = n.ordinal,
+                    updated_at = n.updated_at
+                WHEN NOT MATCHED THEN
+                    INSERT (ordinal, list_id, author_id, "name", created_at, updated_at)
+                        VALUES (n.ordinal, n.list_id, n.author_id, n.name, n.created_at, n.updated_at);"#,
                 idx as i64,
                 list_id,
                 auther_id,

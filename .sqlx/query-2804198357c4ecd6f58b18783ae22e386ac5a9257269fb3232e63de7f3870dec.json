@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "MERGE INTO guild.entries e\n                USING (\n                    VALUES ($1::bigint, $2::bigint, $3::bigint, $4::text, $5::bigint, $5::bigint)\n                ) n(ordinal, list_id, author_id, \"name\", created_at, updated_at)\n                ON\n                    e.list_id = n.list_id\n                    AND e.name = n.name\n                WHEN MATCHED THEN\n                    UPDATE SET\n                    ordinal = n.ordinal,\n                    updated_at = n.updated_at\n                WHEN NOT MATCHED THEN\n                    INSERT (ordinal, list_id, author_id, \"name\", created_at, updated_at)\n                        VALUES (n.ordinal, n.list_id, n.author_id, n.name, n.created_at, n.updated_at);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2804198357c4ecd6f58b18783ae22e386ac5a9257269fb3232e63de7f3870dec"
+}

@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "MERGE INTO guild.lists e\n                USING (\n                    VALUES ($1::bigint, $2::bigint, $3::bigint, $4::bigint, $5::bigint, $6::bigint)\n                ) n(guild_id, channel_id, message_id, author_id, revision, updated_at)\n                ON\n                    e.guild_id = n.guild_id\n                    AND e.channel_id = n.channel_id\n                WHEN MATCHED THEN\n                    UPDATE SET\n                        message_id = n.message_id,\n                        updated_at = n.updated_at,\n                        revision = n.revision\n                WHEN NOT MATCHED THEN\n                    INSERT (guild_id, channel_id, message_id, author_id, revision, updated_at)\n                        VALUES (n.guild_id, n.channel_id, n.message_id, n.author_id, n.revision, n.updated_at);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a94d949fd672b76e1371534df201623790812416521c26fd0781944eb4ce0857"
+}
