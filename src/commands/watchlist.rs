@@ -291,7 +291,7 @@ async fn sync_pinned(
         .entries(entries)
         .render();
 
-    let edit = serenity::EditMessage::new().content(&content);
+    let edit = serenity::EditMessage::new().content(&content).embeds(vec![]);
 
     if channel_id.edit_message(&ctx.http(), message_id, edit).await.is_ok() {
         return Ok(message_id);
