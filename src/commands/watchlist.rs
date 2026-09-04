@@ -17,8 +17,7 @@ pub static MODAL_INPUT_LIMIT: usize = 4000;
 /// manage this channels watch list
 #[poise::command(
     slash_command,
-    subcommands("create", "clear", "edit"),
-    subcommand_required
+    subcommands("create", "clear", "edit")
 )]
 pub async fn watchlist(_: Context<'_>) -> Result<(), Error> {
     Ok(())
