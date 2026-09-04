@@ -38,9 +38,10 @@ async fn main() -> Result<()> {
 
     let global_commands: Vec<Command<Data, Error>> = vec![];
     let commands: Vec<Command<Data, Error>> = vec![
+        commands::help(),
         commands::register(),
-        commands::watchlist(),
         commands::version(),
+        commands::watchlist(),
     ];
 
     let framework = poise::Framework::builder()

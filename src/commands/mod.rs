@@ -1,3 +1,3 @@
-crate::mod_flat!(register, watchlist, version);
+crate::mod_flat!(help, register, version, watchlist);
 
-pub use self::{register::*, version::*, watchlist::*};
+pub use self::{help::*, register::*, version::*, watchlist::*};
