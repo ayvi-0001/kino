@@ -70,8 +70,16 @@ pub async fn create(
 
     ctx.defer().await?;
 
-    let rendered: String = render_pinned(vec![], author_id.get(), now());
-    let message = ctx.say(&rendered).await?.into_message().await?;
+    let message = ctx
+        .say(
+            WatchListContent::default()
+                .updated_at(now())
+                .updated_by(author_id.get() as i64)
+                .render(),
+        )
+        .await?
+        .into_message()
+        .await?;
 
     if let Err(error) = message.pin(&ctx.http()).await {
         tracing::warn!(?error, "could not pin the watch list message");
@@ -278,9 +286,13 @@ async fn sync_pinned(
 
     let entries: Vec<&str> = split_entries(content);
 
-    let content: String = render_pinned(entries, list.author_id as u64, list.updated_at);
+    let content: String = WatchListContent::default()
+        .updated_at(list.updated_at)
+        .updated_by(list.author_id)
+        .entries(entries)
+        .render();
 
-    let edit = serenity::EditMessage::new().content(content.clone());
+    let edit = serenity::EditMessage::new().content(&content);
 
     if channel_id.edit_message(&ctx.http(), message_id, edit).await.is_ok() {
         return Ok(message_id);
@@ -317,7 +329,7 @@ fn strip_marker(line: &str) -> &str {
     trimmed
 }
 
-pub fn normalize(input: &str) -> String {
+fn normalize(input: &str) -> String {
     let mut entries: Vec<String> = vec![];
 
     for line in input.replace('\r', "").lines() {
@@ -337,45 +349,92 @@ pub fn normalize(input: &str) -> String {
     content
 }
 
-pub fn split_entries(content: &str) -> Vec<&str> {
+fn split_entries(content: &str) -> Vec<&str> {
     content.lines().filter(|line| !line.trim().is_empty()).collect()
 }
 
-pub fn render_pinned(entries: Vec<&str>, updated_by: u64, updated_at: i64) -> String {
-    let mut footer = String::from("\n-# ");
-    footer.push_str(&format!("last updated by <@{updated_by}> "));
-    if updated_at > 0 {
-        footer.push_str(&format!("<t:{updated_at}:R> "));
-    }
-    footer.push_str("• edit with `/watchlist edit`");
-
-    let header = format!(
-        "## Watch List\n-# {} {}\n\n",
-        entries.len(),
-        if entries.len() == 1 { "entry" } else { "entries" }
-    );
-
-    if entries.is_empty() {
-        return format!("{header}*the list is empty.*{footer}");
-    }
-
-    let budget = MESSAGE_LIMIT.saturating_sub(header.len() + footer.len() + 40);
-
-    let mut body = String::new();
-    let mut shown = 0_usize;
-
-    for (idx, entry) in entries.iter().enumerate() {
-        let line = format!("{}. {}\n", idx + 1, entry);
-        if body.len() + line.len() > budget {
-            break;
-        }
-        body.push_str(&line);
-        shown += 1;
-    }
-
-    if shown < entries.len() {
-        body.push_str(&format!("*…and {} more*\n", entries.len() - shown));
-    }
-
-    format!("{header}{body}{footer}")
+#[derive(Default, Debug)]
+struct WatchListContent {
+    body: String,
+    pub entries: Vec<String>,
+    footer: String,
+    header: String,
+    pub updated_at: Option<i64>,
+    pub updated_by: Option<i64>,
 }
+
+impl WatchListContent {
+    pub fn entries(mut self, entries: Vec<&str>) -> Self {
+        self.entries = entries.into_iter().map(String::from).collect::<Vec<String>>();
+        self
+    }
+    pub fn updated_at(mut self, updated_at: i64) -> Self {
+        self.updated_at = Some(updated_at);
+        self
+    }
+    pub fn updated_by(mut self, updated_by: i64) -> Self {
+        self.updated_by = Some(updated_by);
+        self
+    }
+
+    pub fn render(mut self) -> String {
+        self.write_content()
+    }
+}
+
+impl WatchListContent {
+    fn write_header(&mut self) {
+        self.header = format!(
+            "## Watch List\n-# {} {}\n\n",
+            self.entries.len(),
+            if self.entries.len() == 1 { "entry" } else { "entries" }
+        );
+    }
+
+    fn write_footer(&mut self) {
+        self.footer = String::from("\n-# ");
+
+        if let Some(updated_by) = &self.updated_by {
+            self.footer.push_str(&format!("last updated by <@{0}> ", updated_by));
+        }
+        if let Some(updated_at) = self.updated_at
+            && updated_at > 0
+        {
+            self.footer.push_str(&format!("<t:{0}:R> ", updated_at));
+        }
+
+        self.footer.push_str("• edit with `/watchlist edit`");
+    }
+
+    fn write_body(&mut self) {
+        let budget = MESSAGE_LIMIT.saturating_sub(self.header.len() + self.footer.len() + 40);
+
+        let mut shown = 0_usize;
+        for (idx, entry) in self.entries.iter().enumerate() {
+            let line = format!("{}. {}\n", idx + 1, entry);
+
+            if self.body.len() + line.len() > budget {
+                break;
+            }
+            self.body.push_str(&line);
+            shown += 1;
+        }
+
+        if shown < self.entries.len() {
+            self.body.push_str(&format!("*…and {} more*\n", self.entries.len() - shown));
+        }
+    }
+
+    fn write_content(&mut self) -> String {
+        self.write_header();
+        self.write_footer();
+
+        if self.entries.is_empty() {
+            format!("{0}*the list is empty.*{1}", self.header, self.footer)
+        } else {
+            self.write_body();
+            format!("{}{}{}", self.header, self.body, self.footer)
+        }
+    }
+}
+
