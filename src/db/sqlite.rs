@@ -20,13 +20,14 @@ impl Database {
     const MAX_CONNECTIONS: u32 = 8;
 
     pub async fn connect(database_url: &str) -> Result<Self> {
-        let path = Path::new(database_url);
+        let filename: &str = database_url.strip_prefix("sqlite:///").unwrap_or(database_url);
+        let path = Path::new(filename);
         if let Some(dir) = path.parent() {
             tokio::fs::create_dir_all(dir).await?;
         }
 
         let options: SqliteConnectOptions = SqliteConnectOptions::new()
-            .filename(database_url)
+            .filename(filename)
             .create_if_missing(true)
             .foreign_keys(true)
             .auto_vacuum(sqlx::sqlite::SqliteAutoVacuum::Full)
