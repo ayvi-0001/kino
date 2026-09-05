@@ -17,7 +17,7 @@ pub static MODAL_INPUT_LIMIT: usize = 4000;
 /// manage this channels watch list
 #[poise::command(
     slash_command,
-    subcommands("create", "clear", "edit")
+    subcommands("create", "clear", "edit", "delete")
 )]
 pub async fn watchlist(_: Context<'_>) -> Result<(), Error> {
     Ok(())
@@ -153,6 +153,43 @@ pub async fn clear(ctx: Context<'_>) -> Result<(), Error> {
             }
         }
     }
+
+    Ok(())
+}
+
+/// delete this channels watch list
+/// NOTE: delete command currently set to prefix/owners only.
+#[poise::command(
+    prefix_command,
+    guild_only,
+    hide_in_help,
+    owners_only
+)]
+pub async fn delete(ctx: Context<'_>) -> Result<(), Error> {
+    let guild_id: serenity::GuildId = ctx.guild_id().expect("this command is set to `guild_only`");
+    let channel_id: serenity::ChannelId = ctx.channel_id();
+
+    // if let poise::Context::Prefix(prefix_ctx) = ctx {
+    //     prefix_ctx.msg.delete(ctx).await?;
+    // }
+
+    let Some(list) = ctx.data().db.get_list(guild_id.get() as i64, channel_id.get() as i64).await?
+    else {
+        ctx.send(CreateReply::default().content("no list exists in this channel").ephemeral(true))
+            .await?;
+        return Ok(());
+    };
+
+    ctx.data().db.delete_list(list.id).await?;
+
+    channel_id
+        .delete_message(
+            ctx,
+            <u64 as std::convert::Into<serenity::MessageId>>::into(list.message_id as u64),
+        )
+        .await?;
+
+    ctx.send(CreateReply::default().content("channel watchlist deleted!")).await?;
 
     Ok(())
 }

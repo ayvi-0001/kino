@@ -176,6 +176,18 @@ impl Database {
         Ok(())
     }
 
+    pub async fn delete_list(&self, list_id: i64) -> Result<()> {
+        let mut transaction: sqlx::Transaction<'_, Postgres> = self.pool.begin().await?;
+
+        sqlx::query!(r#"DELETE FROM guild.lists WHERE id = $1;"#, list_id)
+            .execute(&mut *transaction)
+            .await?;
+
+        transaction.commit().await?;
+
+        Ok(())
+    }
+
     pub async fn update_list_entries(
         &self,
         list_id: i64,

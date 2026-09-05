@@ -45,7 +45,14 @@ async fn main() -> Result<()> {
     ];
 
     let framework = poise::Framework::builder()
-        .options(poise::FrameworkOptions { commands, ..Default::default() })
+        .options(poise::FrameworkOptions {
+            commands,
+            prefix_options: poise::PrefixFrameworkOptions {
+                prefix: Some("!".into()),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
                 if let Some(dev_guild_id) = *DEV_GUILD {

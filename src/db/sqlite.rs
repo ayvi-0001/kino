@@ -1,7 +1,6 @@
 use std::path::Path;
 
 use anyhow::{Result, anyhow};
-use chrono::NaiveDateTime;
 use sqlx::{
     Arguments, Pool, Sqlite,
     query::Query,
@@ -183,6 +182,18 @@ impl Database {
         let mut transaction: sqlx::Transaction<'_, Sqlite> = self.pool.begin().await?;
 
         sqlx::query!(r#"DELETE FROM entries WHERE list_id = ?;"#, list_id)
+            .execute(&mut *transaction)
+            .await?;
+
+        transaction.commit().await?;
+
+        Ok(())
+    }
+
+    pub async fn delete_list(&self, list_id: i64) -> Result<()> {
+        let mut transaction: sqlx::Transaction<'_, Sqlite> = self.pool.begin().await?;
+
+        sqlx::query!(r#"DELETE FROM lists WHERE id = $1;"#, list_id)
             .execute(&mut *transaction)
             .await?;
 
