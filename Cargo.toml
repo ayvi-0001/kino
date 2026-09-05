@@ -18,6 +18,7 @@ chrono = { version = "0.4.45", features = ["serde"] }
 diffy = { version = "0.5.1", features = ["color"] }
 lazy_static = "1.5.0"
 poise = "0.6.2"
+regex = "1.13.1"
 serde = { version = "1.0.229", features = ["derive"] }
 serenity = { version = "0.12.5", default-features = false, features = [
   "client",

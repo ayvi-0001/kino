@@ -1101,6 +1101,7 @@ dependencies = [
  "diffy",
  "lazy_static",
  "poise",
+ "regex",
  "serde",
  "serenity",
  "sqlx",
