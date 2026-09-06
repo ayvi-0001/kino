@@ -1,27 +1,48 @@
-use anyhow::Result;
-use sqlx::{Pool, Postgres, postgres::PgPoolOptions, query_builder::Separated};
+use std::path::Path;
 
-use super::{Entry, Watchlist};
-use crate::utils::now;
+use anyhow::{Result, anyhow};
+use kino_db::{Entry, Watchlist, now};
+use sqlx::{
+    Arguments, Pool, Sqlite,
+    query::Query,
+    query_builder::Separated,
+    sqlite::{SqliteArguments, SqliteConnectOptions, SqlitePoolOptions},
+};
 
 #[derive(Clone)]
 pub struct Database {
-    pub pool: Pool<Postgres>,
+    pub pool: Pool<Sqlite>,
 }
 
 impl Database {
     const MAX_CONNECTIONS: u32 = 8;
 
     pub async fn connect(database_url: &str) -> Result<Self> {
-        let pool: Pool<Postgres> = PgPoolOptions::new()
+        let filename: &str = database_url.strip_prefix("sqlite:///").unwrap_or(database_url);
+        let path = Path::new(filename);
+        if let Some(dir) = path.parent() {
+            tokio::fs::create_dir_all(dir).await?;
+        }
+
+        let options: SqliteConnectOptions = SqliteConnectOptions::new()
+            .filename(filename)
+            .create_if_missing(true)
+            .foreign_keys(true)
+            .auto_vacuum(sqlx::sqlite::SqliteAutoVacuum::Full)
+            .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+            .pragma("temp_store", "MEMORY")
+            .pragma("cache_size", "-16000")
+            .optimize_on_close(true, None);
+
+        let pool: Pool<Sqlite> = SqlitePoolOptions::new()
             .max_connections(Database::MAX_CONNECTIONS)
             .idle_timeout(std::time::Duration::from_secs(300))
             .max_lifetime(std::time::Duration::from_secs(1800))
             .test_before_acquire(true)
-            .connect(database_url)
+            .connect_with(options)
             .await?;
 
-        if let Err(migrate_result) = sqlx::migrate!("migrations/postgres").run(&pool).await {
+        if let Err(migrate_result) = sqlx::migrate!("../../migrations/sqlite").run(&pool).await {
             // TODO(ayvi0001): handle if migration fails
             tracing::error!("Sqlx migration error: {:?}", migrate_result.to_string());
         };
@@ -42,12 +63,12 @@ impl Database {
                    created_at AS "created_at!",
                    updated_at AS "updated_at!"
                FROM
-                   guild.lists
+                   lists
                WHERE
                    guild_id = $1
                    AND channel_id = $2;"#,
             guild_id,
-            channel_id,
+            channel_id
         )
         .fetch_optional(&self.pool)
         .await?;
@@ -67,12 +88,12 @@ impl Database {
                    created_at AS "created_at!",
                    updated_at AS "updated_at!"
                FROM
-                   guild.entries
+                   "entries"
                WHERE
                    list_id = $1
                ORDER BY
                    ordinal;"#,
-            list_id,
+            list_id
         )
         .fetch_all(&self.pool)
         .await?;
@@ -88,45 +109,36 @@ impl Database {
         author_id: i64,
         content: Option<&str>,
     ) -> Result<i64> {
-        let mut transaction: sqlx::Transaction<'_, Postgres> = self.pool.begin().await?;
+        let mut transaction: sqlx::Transaction<'_, Sqlite> = self.pool.begin().await?;
 
         let timestamp: i64 = now();
 
-        let revision_id: i64 = sqlx::query_scalar!(
-            r#"INSERT INTO guild.revisions (guild_id, channel_id, author_id, content, created_at)
-                   VALUES ($1, $2, $3, $4, $5)
-                   RETURNING id;"#,
+        let revision_id: i64 = sqlx::query!(
+            r#"INSERT INTO revisions (guild_id, channel_id, author_id, content, created_at) VALUES ($1, $2, $3, $4, $5);"#,
             guild_id,
             channel_id,
             author_id,
             content.unwrap_or_default(),
-            timestamp as f64,
+            timestamp,
         )
-        .fetch_one(&mut *transaction)
-        .await?;
+        .execute(&mut *transaction)
+        .await?
+        .last_insert_rowid();
 
         sqlx::query!(
-                r#"MERGE INTO guild.lists e
-                USING (
-                    VALUES ($1::bigint, $2::bigint, $3::bigint, $4::bigint, $5::bigint, $6::bigint)
-                ) n(guild_id, channel_id, message_id, author_id, revision, updated_at)
-                ON
-                    e.guild_id = n.guild_id
-                    AND e.channel_id = n.channel_id
-                WHEN MATCHED THEN
-                    UPDATE SET
-                        message_id = n.message_id,
-                        updated_at = n.updated_at,
-                        revision = n.revision
-                WHEN NOT MATCHED THEN
-                    INSERT (guild_id, channel_id, message_id, author_id, revision, updated_at)
-                        VALUES (n.guild_id, n.channel_id, n.message_id, n.author_id, n.revision, n.updated_at);"#,
+            r#"INSERT INTO lists (guild_id, channel_id, message_id, author_id, revision, updated_at)
+                   VALUES ($1, $2, $3, $4, $5, $6)
+                   ON CONFLICT (channel_id)
+                   DO UPDATE SET
+                       message_id = excluded.message_id,
+                       updated_at = excluded.updated_at,
+                       revision = excluded.revision;"#,
             guild_id,
             channel_id,
             message_id,
             author_id,
             revision_id,
-            timestamp as f64,
+            timestamp,
         )
         .execute(&mut *transaction)
         .await?;
@@ -137,19 +149,18 @@ impl Database {
     }
 
     pub async fn delete_list_entries(&self, list_id: i64, entries: &Vec<&str>) -> Result<()> {
-        if entries.is_empty() {
-            return Ok(());
-        }
+        let mut transaction: sqlx::Transaction<'_, Sqlite> = self.pool.begin().await?;
 
-        let mut transaction: sqlx::Transaction<'_, Postgres> = self.pool.begin().await?;
+        let mut arguments = SqliteArguments::default();
 
-        let mut query_builder =
-            sqlx::QueryBuilder::<Postgres>::new("DELETE FROM guild.entries WHERE list_id = ");
+        arguments.add(list_id).map_err(|_| anyhow!("failed to bind list id"))?;
 
-        query_builder.push_bind(list_id);
-        query_builder.push(" AND name IN (");
+        let mut query_builder = sqlx::QueryBuilder::with_arguments(
+            "DELETE FROM entries WHERE list_id = ? AND name IN (",
+            arguments,
+        );
 
-        let mut separated: Separated<'_, Postgres, &str> = query_builder.separated(",");
+        let mut separated: Separated<'_, Sqlite, &str> = query_builder.separated(",");
 
         entries.iter().for_each(|e| {
             separated.push_bind(e);
@@ -157,7 +168,9 @@ impl Database {
 
         separated.push_unseparated(")");
 
-        query_builder.build().execute(&mut *transaction).await?;
+        let query: Query<'_, Sqlite, SqliteArguments> = query_builder.build();
+
+        query.execute(&mut *transaction).await?;
 
         transaction.commit().await?;
 
@@ -165,9 +178,9 @@ impl Database {
     }
 
     pub async fn delete_all_list_entries(&self, list_id: i64) -> Result<()> {
-        let mut transaction: sqlx::Transaction<'_, Postgres> = self.pool.begin().await?;
+        let mut transaction: sqlx::Transaction<'_, Sqlite> = self.pool.begin().await?;
 
-        sqlx::query!(r#"DELETE FROM guild.entries WHERE list_id = $1;"#, list_id)
+        sqlx::query!(r#"DELETE FROM entries WHERE list_id = ?;"#, list_id)
             .execute(&mut *transaction)
             .await?;
 
@@ -177,9 +190,9 @@ impl Database {
     }
 
     pub async fn delete_list(&self, list_id: i64) -> Result<()> {
-        let mut transaction: sqlx::Transaction<'_, Postgres> = self.pool.begin().await?;
+        let mut transaction: sqlx::Transaction<'_, Sqlite> = self.pool.begin().await?;
 
-        sqlx::query!(r#"DELETE FROM guild.lists WHERE id = $1;"#, list_id)
+        sqlx::query!(r#"DELETE FROM lists WHERE id = $1;"#, list_id)
             .execute(&mut *transaction)
             .await?;
 
@@ -194,26 +207,18 @@ impl Database {
         auther_id: i64,
         entries: Vec<&str>,
     ) -> Result<()> {
-        let mut transaction: sqlx::Transaction<'_, Postgres> = self.pool.begin().await?;
+        let mut transaction: sqlx::Transaction<'_, Sqlite> = self.pool.begin().await?;
 
         let timestamp = now();
 
         for (idx, entry) in entries.into_iter().enumerate() {
             sqlx::query!(
-                r#"MERGE INTO guild.entries e
-                USING (
-                    VALUES ($1::bigint, $2::bigint, $3::bigint, $4::text, $5::bigint, $5::bigint)
-                ) n(ordinal, list_id, author_id, "name", created_at, updated_at)
-                ON
-                    e.list_id = n.list_id
-                    AND e.name = n.name
-                WHEN MATCHED THEN
-                    UPDATE SET
-                    ordinal = n.ordinal,
-                    updated_at = n.updated_at
-                WHEN NOT MATCHED THEN
-                    INSERT (ordinal, list_id, author_id, "name", created_at, updated_at)
-                        VALUES (n.ordinal, n.list_id, n.author_id, n.name, n.created_at, n.updated_at);"#,
+                r#"INSERT INTO entries (ordinal, list_id, author_id, name, created_at, updated_at)
+                       VALUES ($1, $2, $3, $4, $5, $5)
+                       ON CONFLICT("list_id", "name")
+                       DO UPDATE SET
+                           ordinal = $1,
+                           updated_at = $5;"#,
                 idx as i64,
                 list_id,
                 auther_id,

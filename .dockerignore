@@ -3,6 +3,7 @@
 !.git/
 !.helix/
 !.sqlx/
+!crates/
 !migrations/
 !src/
 !.dockerignore

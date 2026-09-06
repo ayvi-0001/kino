@@ -1099,16 +1099,47 @@ dependencies = [
  "anyhow",
  "chrono",
  "diffy",
+ "kino-db",
+ "kino-db-postgres",
+ "kino-db-sqlite",
  "lazy_static",
  "poise",
  "regex",
  "serde",
  "serenity",
- "sqlx",
  "tokio",
  "tracing",
  "tracing-subscriber",
  "vergen-gitcl",
+]
+
+[[package]]
+name = "kino-db"
+version = "0.3.0"
+dependencies = [
+ "serde",
+ "sqlx",
+]
+
+[[package]]
+name = "kino-db-postgres"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "kino-db",
+ "sqlx",
+ "tracing",
+]
+
+[[package]]
+name = "kino-db-sqlite"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "kino-db",
+ "sqlx",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

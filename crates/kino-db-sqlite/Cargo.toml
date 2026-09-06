@@ -1,0 +1,12 @@
+[package]
+name = "kino-db-sqlite"
+version = "0.3.0"
+edition = "2024"
+rust-version = "1.94.0"
+
+[dependencies]
+anyhow = { workspace = true }
+kino-db = { path = "../kino-db" }
+sqlx = { workspace = true, features = ["sqlite"] }
+tokio = { workspace = true, features = ["fs"] }
+tracing = { workspace = true }

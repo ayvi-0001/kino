@@ -1,0 +1,11 @@
+[package]
+name = "kino-db-postgres"
+version = "0.3.0"
+edition = "2024"
+rust-version = "1.94.0"
+
+[dependencies]
+anyhow = { workspace = true }
+kino-db = { path = "../kino-db" }
+sqlx = { workspace = true, features = ["postgres"] }
+tracing = { workspace = true }

@@ -6,20 +6,40 @@ rust-version = "1.94.0"
 
 [features]
 default = ["postgres"]
-sqlite = ["sqlx/sqlite"]
-postgres = ["sqlx/postgres"]
+sqlite = ["dep:kino-db-sqlite"]
+postgres = ["dep:kino-db-postgres"]
+
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+[workspace.dependencies]
+anyhow = "1.0.104"
+serde = { version = "1.0.229", features = ["derive"] }
+sqlx = { version = "0.9.0", features = [
+  "derive",
+  "chrono",
+  "macros",
+  "runtime-tokio",
+  "migrate",
+] }
+tokio = { version = "1.53.1" }
+tracing = "0.1.44"
 
 [build-dependencies]
 vergen-gitcl = { version = "9.0.1", features = ["build", "cargo", "rustc"] }
 
 [dependencies]
-anyhow = "1.0.104"
+anyhow = { workspace = true }
 chrono = { version = "0.4.45", features = ["serde"] }
 diffy = { version = "0.5.1", features = ["color"] }
+kino-db = { path = "crates/kino-db" }
+kino-db-postgres = { path = "crates/kino-db-postgres", optional = true }
+kino-db-sqlite = { path = "crates/kino-db-sqlite", optional = true }
 lazy_static = "1.5.0"
 poise = "0.6.2"
 regex = "1.13.1"
-serde = { version = "1.0.229", features = ["derive"] }
+serde = { workspace = true }
 serenity = { version = "0.12.5", default-features = false, features = [
   "client",
   "gateway",
@@ -28,17 +48,6 @@ serenity = { version = "0.12.5", default-features = false, features = [
   "builder",
   "cache",
 ] }
-sqlx = { version = "0.9.0", features = [
-  "derive",
-  "chrono",
-  "macros",
-  "runtime-tokio",
-  "migrate",
-] }
-tokio = { version = "1.53.1", features = [
-  "macros",
-  "rt-multi-thread",
-  "signal",
-] }
-tracing = "0.1.44"
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal"] }
+tracing = { workspace = true }
 tracing-subscriber = "0.3.23"

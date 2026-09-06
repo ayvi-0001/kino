@@ -1,0 +1,98 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT\n                   id AS \"id!\",\n                   list_id AS \"list_id!\",\n                   ordinal AS \"ordinal!\",\n                   name AS \"name!\",\n                   author_id AS \"author_id!\",\n                   created_at AS \"created_at!\",\n                   updated_at AS \"updated_at!\"\n               FROM\n                   \"entries\"\n               WHERE\n                   list_id = $1\n               ORDER BY\n                   ordinal;",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "entries",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "list_id!",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "entries",
+            "name": "list_id"
+          }
+        }
+      },
+      {
+        "name": "ordinal!",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "entries",
+            "name": "ordinal"
+          }
+        }
+      },
+      {
+        "name": "name!",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "entries",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "name": "author_id!",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "entries",
+            "name": "author_id"
+          }
+        }
+      },
+      {
+        "name": "created_at!",
+        "ordinal": 5,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "entries",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "name": "updated_at!",
+        "ordinal": 6,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "entries",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6f871a28249c31d72309e2bfeb4b63da22c8277003958df72e9a4b8859507bc5"
+}
