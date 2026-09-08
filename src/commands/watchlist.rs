@@ -71,10 +71,10 @@ pub async fn create(
 
     let message = ctx
         .say(
-            WatchListContent::default()
+            WatchListPinnedMessage::default()
                 .updated_at(now())
                 .updated_by(author_id.get() as i64)
-                .render(),
+                .render_content(),
         )
         .await?
         .into_message()
@@ -258,7 +258,7 @@ pub async fn edit(ctx: poise::ApplicationContext<'_, Data, Error>) -> Result<(),
     let base_revision: i64 = list.revision;
 
     let old_content: String = content.clone();
-    let new_content: String = normalize(&data.content);
+    let new_content: String = WatchListPinnedMessage::normalize(&data.content);
 
     if new_content == old_content {
         ctx.send(CreateReply::default().content("no changes made").ephemeral(true))
@@ -289,100 +289,24 @@ pub async fn edit(ctx: poise::ApplicationContext<'_, Data, Error>) -> Result<(),
         )
         .await?;
 
-    let message_id: serenity::MessageId = sync_pinned(ctx, &list, &new_content).await?;
+    let message_id: serenity::MessageId =
+        WatchListPinnedMessage::sync_pinned(ctx, &list, &new_content).await?;
 
     let changes: String = create_patch(&old_content, &new_content, 1500);
 
-    let mut response: String = format!(
-        "@here: <@{}> updated the movie watch list in {}\n```diff\n{}```",
-        author_id.get(),
-        message_link(list.guild_id, list.channel_id, message_id.get() as i64),
-        changes
+    let response: String = WatchListPinnedMessage::write_edit_reply(
+        list.guild_id,
+        list.channel_id,
+        message_id.get() as i64,
+        author_id.get() as i64,
+        changes,
+        base_revision,
+        list.revision,
     );
-
-    if base_revision >= 0 && base_revision != list.revision {
-        response
-            .push_str("\n-# heads up, someone else edited the list while this editor was open.");
-    }
-
-    response.truncate(MESSAGE_LIMIT);
 
     ctx.send(CreateReply::default().content(response)).await?;
 
     Ok(())
-}
-
-async fn sync_pinned(
-    ctx: poise::ApplicationContext<'_, Data, Error>,
-    list: &Watchlist,
-    content: &str,
-) -> Result<serenity::MessageId, Error> {
-    let channel_id = serenity::ChannelId::new(list.channel_id as u64);
-    let message_id = serenity::MessageId::new(list.message_id as u64);
-
-    let entries: Vec<&str> = split_entries(content);
-
-    let content: String = WatchListContent::default()
-        .updated_at(list.updated_at)
-        .updated_by(list.author_id)
-        .entries(entries)
-        .render();
-
-    let edit = serenity::EditMessage::new().content(&content).embeds(vec![]);
-
-    if channel_id.edit_message(&ctx.http(), message_id, edit).await.is_ok() {
-        return Ok(message_id);
-    }
-
-    let message = ctx.send(CreateReply::default().content(&content)).await?.into_message().await?;
-
-    if let Err(error) = message.pin(&ctx.http()).await {
-        tracing::warn!(?error, "could not pin the watch list message");
-    }
-
-    Ok(message.id)
-}
-
-fn strip_marker(line: &str) -> &str {
-    let trimmed = line.trim();
-
-    for marker in ["- ", "* ", "+ ", "• ", "– ", "— "] {
-        if let Some(rest) = trimmed.strip_prefix(marker) {
-            return rest.trim_start();
-        }
-    }
-
-    let digits: String = trimmed.chars().take_while(char::is_ascii_digit).collect();
-    if !digits.is_empty() && digits.len() <= 4 {
-        let rest = &trimmed[digits.len()..];
-        for separator in [". ", ") ", "- ", ".", ")"] {
-            if let Some(rest) = rest.strip_prefix(separator) {
-                return rest.trim_start();
-            }
-        }
-    }
-
-    trimmed
-}
-
-fn normalize(input: &str) -> String {
-    let mut entries: Vec<String> = vec![];
-
-    for line in input.replace('\r', "").lines() {
-        let entry = strip_marker(line);
-        if entry.is_empty() {
-            continue;
-        }
-        let already_present = entries.iter().any(|existing| existing.eq_ignore_ascii_case(entry));
-        if !already_present {
-            entries.push(entry.to_owned());
-        }
-    }
-
-    let mut content = entries.join("\n");
-    content.push('\n');
-
-    content
 }
 
 fn split_entries(content: &str) -> Vec<&str> {
@@ -390,7 +314,7 @@ fn split_entries(content: &str) -> Vec<&str> {
 }
 
 #[derive(Default, Debug)]
-struct WatchListContent {
+struct WatchListPinnedMessage {
     body: String,
     pub entries: Vec<String>,
     footer: String,
@@ -399,7 +323,7 @@ struct WatchListContent {
     pub updated_by: Option<i64>,
 }
 
-impl WatchListContent {
+impl WatchListPinnedMessage {
     pub fn entries(mut self, entries: Vec<&str>) -> Self {
         self.entries = entries.into_iter().map(String::from).collect::<Vec<String>>();
         self
@@ -413,12 +337,117 @@ impl WatchListContent {
         self
     }
 
-    pub fn render(mut self) -> String {
+    pub fn render_content(mut self) -> String {
         self.write_content()
     }
 }
 
-impl WatchListContent {
+// WatchListPinnedMessage assoociated methods
+impl WatchListPinnedMessage {
+    pub fn write_edit_reply(
+        guild_id: i64,
+        channel_id: i64,
+        message_id: i64,
+        author_id: i64,
+        changes: String,
+        base_revision: i64,
+        latest_revision: i64,
+    ) -> String {
+        let mut response = format!(
+            "@here: <@{}> updated the movie watch list in {}\n```diff\n{}```",
+            author_id,
+            message_link(guild_id, channel_id, message_id),
+            changes
+        );
+
+        if base_revision >= 0 && base_revision != latest_revision {
+            response.push_str(
+                "\n-# heads up, someone else edited the list while this editor was open.",
+            );
+        };
+
+        response.truncate(MESSAGE_LIMIT);
+
+        response
+    }
+
+    pub async fn sync_pinned(
+        ctx: poise::ApplicationContext<'_, Data, Error>,
+        list: &Watchlist,
+        content: &str,
+    ) -> Result<serenity::MessageId, Error> {
+        let channel_id = serenity::ChannelId::new(list.channel_id as u64);
+        let message_id = serenity::MessageId::new(list.message_id as u64);
+
+        let entries: Vec<&str> = split_entries(content);
+
+        let content: String = WatchListPinnedMessage::default()
+            .updated_at(list.updated_at)
+            .updated_by(list.author_id)
+            .entries(entries)
+            .render_content();
+
+        let edit = serenity::EditMessage::new().content(&content).embeds(vec![]);
+
+        if channel_id.edit_message(&ctx.http(), message_id, edit).await.is_ok() {
+            return Ok(message_id);
+        }
+
+        let message =
+            ctx.send(CreateReply::default().content(&content)).await?.into_message().await?;
+
+        if let Err(error) = message.pin(&ctx.http()).await {
+            tracing::warn!(?error, "could not pin the watch list message");
+        }
+
+        Ok(message.id)
+    }
+
+    fn strip_marker(line: &str) -> &str {
+        let trimmed = line.trim();
+
+        for marker in ["- ", "* ", "+ ", "• ", "– ", "— "] {
+            if let Some(rest) = trimmed.strip_prefix(marker) {
+                return rest.trim_start();
+            }
+        }
+
+        let digits: String = trimmed.chars().take_while(char::is_ascii_digit).collect();
+        if !digits.is_empty() && digits.len() <= 4 {
+            let rest = &trimmed[digits.len()..];
+            for separator in [". ", ") ", "- ", ".", ")"] {
+                if let Some(rest) = rest.strip_prefix(separator) {
+                    return rest.trim_start();
+                }
+            }
+        }
+
+        trimmed
+    }
+
+    pub fn normalize(input: &str) -> String {
+        let mut entries: Vec<String> = vec![];
+
+        for line in input.replace('\r', "").lines() {
+            let entry = WatchListPinnedMessage::strip_marker(line);
+            if entry.is_empty() {
+                continue;
+            }
+            let already_present =
+                entries.iter().any(|existing| existing.eq_ignore_ascii_case(entry));
+            if !already_present {
+                entries.push(entry.to_owned());
+            }
+        }
+
+        let mut content = entries.join("\n");
+        content.push('\n');
+
+        content
+    }
+}
+
+impl WatchListPinnedMessage {
     fn write_header(&mut self) {
         self.header = format!(
             "## Watch List\n-# {} {}\n\n",
