@@ -207,7 +207,10 @@ struct EditListModal {
 
 /// open the watch list in a modal editor, post resulting diff
 #[poise::command(slash_command, guild_only)]
-pub async fn edit(ctx: poise::ApplicationContext<'_, Data, Error>) -> Result<(), Error> {
+pub async fn edit(
+    ctx: poise::ApplicationContext<'_, Data, Error>,
+    #[description = "notify all users with @everyone/@here. (default=true)"] notify: Option<bool>,
+) -> Result<(), Error> {
     use poise::Modal as _;
 
     let guild_id: serenity::GuildId = ctx.guild_id().expect("this command is set to `guild_only`");
@@ -294,6 +297,13 @@ pub async fn edit(ctx: poise::ApplicationContext<'_, Data, Error>) -> Result<(),
 
     let changes: String = create_patch(&old_content, &new_content, 1500);
 
+    let should_notify: bool;
+    if let Some(n) = notify {
+        should_notify = n
+    } else {
+        should_notify = true;
+    };
+
     let response: String = WatchListPinnedMessage::write_edit_reply(
         list.guild_id,
         list.channel_id,
@@ -302,6 +312,7 @@ pub async fn edit(ctx: poise::ApplicationContext<'_, Data, Error>) -> Result<(),
         changes,
         base_revision,
         list.revision,
+        should_notify,
     );
 
     ctx.send(CreateReply::default().content(response)).await?;
@@ -344,6 +355,7 @@ impl WatchListPinnedMessage {
 
 // WatchListPinnedMessage assoociated methods
 impl WatchListPinnedMessage {
+    #[allow(clippy::too_many_arguments)]
     pub fn write_edit_reply(
         guild_id: i64,
         channel_id: i64,
@@ -352,9 +364,11 @@ impl WatchListPinnedMessage {
         changes: String,
         base_revision: i64,
         latest_revision: i64,
+        notify: bool,
     ) -> String {
         let mut response = format!(
-            "@here: <@{}> updated the movie watch list in {}\n```diff\n{}```",
+            "{}<@{}> updated the movie watch list in {}\n```diff\n{}```",
+            if notify { "@here: " } else { "" },
             author_id,
             message_link(guild_id, channel_id, message_id),
             changes
