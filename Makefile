@@ -13,42 +13,6 @@ MACHINE     ?= e2-micro
 IMAGE_TAG   ?= latest
 IMAGE       := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(AR_REPO)/kino:$(IMAGE_TAG)
 
-install-sqlx-cli:
-	cargo install sqlx-cli --no-default-features --features native-tls,postgres,sqlite
-
-sqlx-prepare:
-	cargo sqlx database setup \
-		--database-url "$$POSTGRES_DATABASE_URL" \
-		--source migrations/postgres
-	cargo sqlx database setup \
-		--database-url "$$SQLITE_DATABASE_URL" \
-		--source migrations/sqlite \
-		--sqlite-create-db-wal true
-
-	cargo sqlx prepare \
-		--no-dotenv \
-		--database-url "$$POSTGRES_DATABASE_URL" \
-		--workspace \
-		-- \
-		--features postgres \
-		--all-targets
-	mkdir -p .sqlx/postgres/
-	mv .sqlx/*.json .sqlx/postgres/
-
-	cargo sqlx prepare \
-		--no-dotenv \
-		--database-url "$$SQLITE_DATABASE_URL" \
-		--workspace \
-		-- \
-		--no-default-features \
-		--features sqlite \
-		--all-targets
-	mkdir -p .sqlx/sqlite/
-	mv .sqlx/*.json .sqlx/sqlite/
-
-	mv .sqlx/sqlite/* .sqlx/postgres/* .sqlx/
-	rm -d .sqlx/sqlite/ .sqlx/postgres/
-
 ar-repo:
 	if ! gcloud artifacts repositories describe $(AR_REPO) \
 		--project $(GCP_PROJECT) --location $(GCP_REGION) >/dev/null 2>&1; then
@@ -111,6 +75,42 @@ deploy: docker-push
 			exit 1
 		fi
 	fi
+
+install-sqlx-cli:
+	cargo install sqlx-cli --no-default-features --features native-tls,postgres,sqlite
+
+sqlx-prepare:
+	cargo sqlx database setup \
+		--database-url "$$POSTGRES_DATABASE_URL" \
+		--source migrations/postgres
+	cargo sqlx database setup \
+		--database-url "$$SQLITE_DATABASE_URL" \
+		--source migrations/sqlite \
+		--sqlite-create-db-wal true
+
+	cargo sqlx prepare \
+		--no-dotenv \
+		--database-url "$$POSTGRES_DATABASE_URL" \
+		--workspace \
+		-- \
+		--features postgres \
+		--all-targets
+	mkdir -p .sqlx/postgres/
+	mv .sqlx/*.json .sqlx/postgres/
+
+	cargo sqlx prepare \
+		--no-dotenv \
+		--database-url "$$SQLITE_DATABASE_URL" \
+		--workspace \
+		-- \
+		--no-default-features \
+		--features sqlite \
+		--all-targets
+	mkdir -p .sqlx/sqlite/
+	mv .sqlx/*.json .sqlx/sqlite/
+
+	mv .sqlx/sqlite/* .sqlx/postgres/* .sqlx/
+	rm -d .sqlx/sqlite/ .sqlx/postgres/
 
 run:
 	cargo watch -w src/ -w crates/ -x 'run --release'
