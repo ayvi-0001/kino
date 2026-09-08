@@ -18,7 +18,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rustc-env=GIT_INSERTIONS={}", insertions);
     println!("cargo:rustc-env=GIT_DELETIONS={}", deletions);
 
+    let git_describe = git_describe();
+    println!("cargo:rustc-env=GIT_DESCRIBE={}", git_describe);
+
     Ok(())
+}
+
+fn git_describe() -> String {
+    let output = Command::new("git")
+        .args([
+            "describe",
+            "--always",
+            "--long",
+            "--tags",
+            "--dirty=-dev",
+        ])
+        .output()
+        .expect("Failed to run git command");
+
+    str::from_utf8(&output.stdout).expect("Invalid UTF-8").to_owned()
 }
 
 fn get_git_shortstat() -> (u32, u32) {

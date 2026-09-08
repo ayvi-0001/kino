@@ -8,17 +8,12 @@ const BOT_VERSION: &str = env!("CARGO_PKG_VERSION");
 #[poise::command(prefix_command, slash_command)]
 pub async fn version(ctx: poise::Context<'_, Data, Error>) -> Result<(), Error> {
     let content = format!(
-        "```\nv{}\n{}\n({}) g{}{}\n{}```",
+        "```\nv{}\n{}\n({}) {}{}\n{}```",
         BOT_VERSION,
         env!("VERGEN_CARGO_TARGET_TRIPLE"),
         env!("VERGEN_GIT_BRANCH"),
-        env!("VERGEN_GIT_SHA")
-            .chars()
-            .take(7)
-            .map(|c| c.to_string())
-            .collect::<Vec<String>>()
-            .join(""),
-        vergen_git_dirty().unwrap_or_default(),
+        env!("GIT_DESCRIBE"),
+        git_shortstat().unwrap_or_default(),
         vergen_build_timestamp(),
     );
 
@@ -27,10 +22,10 @@ pub async fn version(ctx: poise::Context<'_, Data, Error>) -> Result<(), Error> 
     Ok(())
 }
 
-fn vergen_git_dirty() -> Option<String> {
+fn git_shortstat() -> Option<String> {
     if env!("VERGEN_GIT_DIRTY") == "true" {
         Some(format!(
-            "-dev (+{}, -{})",
+            "+{}-{}",
             env!("GIT_INSERTIONS"),
             env!("GIT_DELETIONS")
         ))
