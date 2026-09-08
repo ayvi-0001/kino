@@ -112,10 +112,24 @@ deploy: docker-push
 		fi
 	fi
 
+run:
+	cargo watch -w src/ -w crates/ -x 'run --release'
+
+stop:
+	gcloud compute instances stop "$(VM_NAME)" \
+		--project "$(GCP_PROJECT)" \
+		--zone "$(ZONE)"
+
+start:
+	gcloud compute instances start "$(VM_NAME)" \
+		--project "$(GCP_PROJECT)" \
+		--zone "$(ZONE)"
+
 .PHONY: \
 	ar-repo \
-	deploy \
 	docker-build \
-	docker-push \
 	install-sqlx-cli \
-	sqlx-prepare
+	run \
+	sqlx-prepare \
+	start \
+	stop
