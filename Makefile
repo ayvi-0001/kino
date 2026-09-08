@@ -4,14 +4,15 @@ SHELL=/usr/bin/bash
 
 .SILENT:
 
-GCP_PROJECT ?= $(shell gcloud config get-value project 2>/dev/null)
-GCP_REGION  ?= us-west1
-GCP_ZONES   ?= us-west1-a us-west1-b us-west1-c
-AR_REPO     ?= kino
-VM_NAME     ?= kino-bot
-MACHINE     ?= e2-micro
-IMAGE_TAG   ?= latest
-IMAGE       := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(AR_REPO)/kino:$(IMAGE_TAG)
+GCP_PROJECT   ?= $(shell gcloud config get-value project 2>/dev/null)
+GCP_REGION    ?= us-west1
+GCP_ZONES     ?= us-west1-a us-west1-b us-west1-c
+AR_REPO       ?= kino
+VM_NAME       ?= kino-bot
+MACHINE       ?= e2-micro
+IMAGE_TAG     ?= latest
+IMAGE         := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(AR_REPO)/kino:$(IMAGE_TAG)
+EXISTING_ZONE ?= $(shell gcloud compute instances list --project "$(GCP_PROJECT)" --filter="name=$(VM_NAME)" | grep $(AR_REPO) | tr -s ' ' | cut -d' ' -f2)
 
 ar-repo:
 	if ! gcloud artifacts repositories describe $(AR_REPO) \
@@ -31,18 +32,11 @@ docker-push: docker-build ar-repo
 	docker push $(IMAGE)
 
 deploy: docker-push
-	EXISTING_ZONE=$$(
-		gcloud compute instances list \
-			--project $(GCP_PROJECT) \
-			--filter="name=$(VM_NAME)" \
-			--format="value(zone.basename())"
-	)
-
-	if [[ -n "$$EXISTING_ZONE" ]]; then
-		echo "updating $(VM_NAME) in $$EXISTING_ZONE"
+	if [[ -n "$(EXISTING_ZONE)" ]]; then
+		echo "updating $(VM_NAME) in $(EXISTING_ZONE)"
 		gcloud compute instances update-container "$(VM_NAME)" \
 			--project "$(GCP_PROJECT)" \
-			--zone "$$EXISTING_ZONE" \
+			--zone "$(EXISTING_ZONE)" \
 			--container-image=$(IMAGE)
 	else
 		CREATED=
@@ -118,12 +112,12 @@ run:
 stop:
 	gcloud compute instances stop "$(VM_NAME)" \
 		--project "$(GCP_PROJECT)" \
-		--zone "$(ZONE)"
+		--zone "$(EXISTING_ZONE)"
 
 start:
 	gcloud compute instances start "$(VM_NAME)" \
 		--project "$(GCP_PROJECT)" \
-		--zone "$(ZONE)"
+		--zone "$(EXISTING_ZONE)"
 
 .PHONY: \
 	ar-repo \
