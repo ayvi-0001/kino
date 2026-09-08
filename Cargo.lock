@@ -1094,7 +1094,7 @@ dependencies = [
 
 [[package]]
 name = "kino"
-version = "0.3.0"
+version = "0.3.1-b.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1115,7 +1115,7 @@ dependencies = [
 
 [[package]]
 name = "kino-db"
-version = "0.3.0"
+version = "0.3.1-b.0"
 dependencies = [
  "serde",
  "sqlx",
@@ -1123,7 +1123,7 @@ dependencies = [
 
 [[package]]
 name = "kino-db-postgres"
-version = "0.3.0"
+version = "0.3.1-b.0"
 dependencies = [
  "anyhow",
  "kino-db",
@@ -1133,7 +1133,7 @@ dependencies = [
 
 [[package]]
 name = "kino-db-sqlite"
-version = "0.3.0"
+version = "0.3.1-b.0"
 dependencies = [
  "anyhow",
  "kino-db",
