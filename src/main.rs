@@ -37,12 +37,7 @@ async fn main() -> Result<()> {
     let db = db::Database::connect(&db_url).await.context("could not open the database")?;
 
     let global_commands: Vec<Command<Data, Error>> = vec![];
-    let commands: Vec<Command<Data, Error>> = vec![
-        commands::help(),
-        commands::register(),
-        commands::version(),
-        commands::watchlist(),
-    ];
+    let commands: Vec<Command<Data, Error>> = get_guild_commands();
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -102,4 +97,19 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn get_guild_commands() -> Vec<Command<Data, Error>> {
+    #[allow(unused_mut)]
+    let mut commands: Vec<Command<Data, Error>> = vec![
+        commands::help(),
+        commands::register(),
+        commands::version(),
+        commands::watchlist(),
+    ];
+
+    #[cfg(feature = "tmdb")]
+    commands.push(commands::search());
+
+    commands
 }

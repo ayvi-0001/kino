@@ -12,7 +12,7 @@ COPY . .
 
 ENV SQLX_OFFLINE=true
 
-RUN cargo build --features postgres --release --locked
+RUN cargo build --features postgres --features tmdb --release --locked
 
 FROM debian:trixie-slim AS runtime
 

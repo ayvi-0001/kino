@@ -107,7 +107,7 @@ sqlx-prepare:
 	rm -d .sqlx/sqlite/ .sqlx/postgres/
 
 run:
-	cargo watch -w src/ -w crates/ -x 'run --release'
+	cargo watch -w src/ -w crates/ -x 'run --features tmdb --release'
 
 stop:
 	gcloud compute instances stop "$(VM_NAME)" \
