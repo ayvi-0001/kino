@@ -1,4 +1,5 @@
 crate::mod_flat!(pinned_message, entry_parts);
+
 use std::{collections::HashSet, convert::Into};
 
 use ::serenity::all::{CreateActionRow, CreateButton, EditMessage};
@@ -217,7 +218,8 @@ pub async fn edit(
     let channel_id: serenity::ChannelId = ctx.channel_id();
     let author_id: serenity::UserId = ctx.author().id;
 
-    let Some(list) = ctx.data().db.get_list(guild_id.get() as i64, channel_id.get() as i64).await?
+    let Some(mut list) =
+        ctx.data().db.get_list(guild_id.get() as i64, channel_id.get() as i64).await?
     else {
         ctx.send(
             CreateReply::default()
@@ -228,6 +230,9 @@ pub async fn edit(
 
         return Ok(());
     };
+
+    list.updated_at = now();
+    list.author_id = author_id.get() as i64;
 
     let entries = ctx.data().db.get_list_entries(list.id).await?;
     let mut content = entries.iter().map(|e| e.name.to_owned()).collect::<Vec<String>>().join("\n");
