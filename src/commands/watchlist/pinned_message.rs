@@ -178,8 +178,13 @@ impl WatchListPinnedMessage {
             let line = format!("{}. {}\n", idx + 1, entry);
 
             // TODO(ayvi-0001): search movie on tmdb api
-            if let Ok(EntryParts(name, year)) = EntryParts::new(entry) {
-                tracing::info!("extracted entry parts: name={:#?}, year={:#?}", name, year);
+            if let Ok(EntryParts { name, year, comment }) = EntryParts::new(entry) {
+                tracing::info!(
+                    "extracted entry parts: name={:#?}, year={:#?}, comment={:#?}",
+                    name,
+                    year,
+                    comment
+                );
             }
 
             if self.body.len() + line.len() > budget {
