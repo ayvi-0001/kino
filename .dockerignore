@@ -1,8 +1,12 @@
 *
 
+# all files tracked by git included so the first stage of the docker build
+# accurately tracks the git status/shortstat, which is used in the app's version.
+
 !.git/
 !.helix/
 !.sqlx/
+!assets/
 !crates/
 !migrations/
 !src/
@@ -16,4 +20,5 @@
 !Cargo.lock
 !Cargo.toml
 !Dockerfile
+!LICENSE
 !Makefile
