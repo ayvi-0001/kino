@@ -37,6 +37,7 @@ deploy: docker-push
 		gcloud compute instances update-container "$(VM_NAME)" \
 			--project "$(GCP_PROJECT)" \
 			--zone "$(EXISTING_ZONE)" \
+			--container-env-file .env \
 			--container-image=$(IMAGE)
 	else
 		CREATED=
